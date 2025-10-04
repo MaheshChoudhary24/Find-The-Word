@@ -64,21 +64,22 @@
 
     /* Home Page Style */
     #main-header {
-        display: flex;
+        display: none; /* Hide by default to prevent flash on load */
         flex-direction: column;
         align-items: center;
         padding: 40px 0 20px 0;
         position: relative;
     }
-    #main-header .logo {
+    .logo {
         width: 72px; height: 72px; border-radius: 20px;
         background: linear-gradient(135deg,var(--accent-yellow),var(--accent-orange));
         display: flex; justify-content: center; align-items: center; box-shadow: var(--shadow);
+        margin-bottom: 1rem;
     }
-    #main-header .logo svg { width: 44px; height: 44px; color: var(--primary-text); }
+    .logo svg { width: 44px; height: 44px; color: var(--primary-text); }
     #main-header h1 {
       font-size: clamp(1.75rem, 5vw, 2.5rem);
-      margin: 12px 0 4px 0;
+      margin: 0 0 4px 0;
       text-align: center;
     }
     #main-header p.tag {
@@ -87,7 +88,7 @@
     }
 
     .grid{
-      display:grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
+      display:grid; grid-template-columns: repeat(auto-fill,minmax(160px,1fr));
       gap: clamp(1rem, 2vw, 1.5rem);
       margin-top:18px;
     }
@@ -103,6 +104,82 @@
     /* Page Styles */
     .page{ display:none; }
     .page.active{ display:block; }
+
+    /* Welcome Screen Styles */
+    #welcome-screen {
+        display: none; /* Handled by .page */
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        min-height: 70vh;
+        position: relative;
+        overflow: hidden;
+    }
+    #welcome-screen.active {
+        display: flex; /* Override for centering */
+    }
+    .welcome-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+    }
+    .welcome-content h1 {
+        font-size: clamp(2.5rem, 8vw, 4rem);
+        font-weight: 800;
+        margin-bottom: 0;
+    }
+    .welcome-content .subtitle {
+        font-size: clamp(1rem, 3vw, 1.25rem);
+        color: var(--muted);
+        margin-top: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .welcome-content .adventure-text {
+        font-size: clamp(1.2rem, 4vw, 1.6rem);
+        font-weight: 700;
+        margin-bottom: 2rem;
+        background: linear-gradient(45deg, var(--accent-orange), var(--accent-blue), var(--accent-green));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        background-size: 200% 200%;
+        animation: color-cycle 4s ease-in-out infinite;
+    }
+    @keyframes color-cycle {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    .welcome-content .btn {
+        padding: 1rem 2.5rem;
+        font-size: clamp(1rem, 3vw, 1.2rem);
+    }
+    .icons-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: space-around;
+        justify-content: space-around;
+        gap: clamp(2rem, 6vw, 4rem);
+        overflow: hidden;
+        padding: 1rem;
+        user-select: none;
+        -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+        mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+    }
+    .icons-background span {
+        font-size: clamp(2.5rem, 8vw, 3.5rem);
+        opacity: 0.0245;
+    }
+
 
     /* Game Page */
     #progress-box {
@@ -154,7 +231,7 @@
 
     .letter-box {
         aspect-ratio: 1 / 1; display: flex; justify-content: center; align-items: center;
-        font-size: clamp(1rem, 3.5vw, 1.5rem);
+        font-size: clamp(0.8rem, 4.5vw, 1.5rem);
         font-weight: 800; border-radius: 10px;
         background-color: var(--card); border: 2px solid transparent;
         transition: all 0.2s ease; cursor: pointer;
@@ -167,7 +244,7 @@
     #game-controls {
         margin-top: 25px;
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
         gap: 0.75rem;
     }
     .action-btn {
@@ -264,10 +341,18 @@
     /* Extra Small screens */
     @media (max-width: 380px) {
         .container {
-            padding: 0.75rem;
+            padding: 0.5rem;
         }
         .modal-content {
-            padding: 25px;
+            padding: 25px 20px;
+        }
+        .modal-content .btn {
+            width: 160px;
+            padding: 0.6rem 1rem;
+        }
+        #word-grid {
+            padding: 10px;
+            gap: 0.25rem;
         }
         .word-letter-box {
           width: clamp(30px, 8vw, 35px);
@@ -352,14 +437,113 @@
     <main class="container">
       <header id="main-header">
           <div class="logo">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V18.75a.75.75 0 01.75-.75zM5.106 17.834a.75.75 0 001.06 1.06l1.591-1.59a.75.75 0 00-1.06-1.061l-1.591 1.59zM3 12a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H3.75A.75.75 0 013 12zM6.166 5.106a.75.75 0 00-1.06 1.06l1.59 1.591a.75.75 0 101.061-1.06l-1.59-1.591z"></path></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 7a5 5 0 100 10 5 5 0 000-10zM12 1.5c.83 0 1.5.67 1.5 1.5v1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V3c0-.83.67-1.5 1.5-1.5zM12 18c.83 0 1.5.67 1.5 1.5v1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V19.5c0-.83.67-1.5 1.5-1.5zM5.33 5.33c.59-.59 1.54-.59 2.12 0l1.06 1.06c.59.59.59 1.54 0 2.12-.59.59-1.54.59-2.12 0L5.33 7.45c-.59-.59-.59-1.54 0-2.12zm11.32 11.32c.59-.59 1.54-.59 2.12 0l1.06 1.06c.59.59.59 1.54 0 2.12-.59.59-1.54.59-2.12 0l-1.06-1.06c-.59-.59-.59-1.54 0-2.12zM1.5 12c0 .83.67 1.5 1.5 1.5h1.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5H3c-.83 0-1.5.67-1.5 1.5zm18 0c0 .83.67 1.5 1.5 1.5h1.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5H19.5c-.83 0-1.5.67-1.5 1.5zM5.33 18.67c-.59-.59-1.54-.59-2.12 0l-1.06-1.06c-.59-.59-.59-1.54 0-2.12.59-.59 1.54-.59 2.12 0l1.06 1.06c.59.59.59 1.54 0 2.12zm11.32-11.32c-.59-.59-1.54-.59-2.12 0L13.47 6.39c-.59.59-.59 1.54 0 2.12.59.59 1.54.59 2.12 0l1.06-1.06c.59-.59.59-1.54 0-2.12z"></path>
+            </svg>
           </div>
           <h1>Find The Word</h1>
           <p class="tag">A fun word hunt game!</p>
       </header>
 
-      <!-- HOME SCREEN CONTENT -->
-      <section id="home" class="page active">
+      <!-- WELCOME SCREEN -->
+      <section id="welcome-screen" class="page active">
+        <div class="icons-background" aria-hidden="true">
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+            <span>🦁</span><span>🍎</span><span>🏰</span><span>🚗</span><span>⚽</span>
+            <span>🌳</span><span>🎨</span><span>🦜</span><span>🧸</span><span>📱</span>
+            <span>🧩</span><span>🍕</span><span>🌸</span><span>🐍</span><span>🌊</span>
+            <span>🔨</span><span>🎉</span><span>🏛️</span><span>🍳</span><span>🏳️‍🌈</span>
+        </div>
+        <div class="welcome-content">
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 7a5 5 0 100 10 5 5 0 000-10zM12 1.5c.83 0 1.5.67 1.5 1.5v1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V3c0-.83.67-1.5 1.5-1.5zM12 18c.83 0 1.5.67 1.5 1.5v1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V19.5c0-.83.67-1.5 1.5-1.5zM5.33 5.33c.59-.59 1.54-.59 2.12 0l1.06 1.06c.59.59.59 1.54 0 2.12-.59.59-1.54.59-2.12 0L5.33 7.45c-.59-.59-.59-1.54 0-2.12zm11.32 11.32c.59-.59 1.54-.59 2.12 0l1.06 1.06c.59.59.59 1.54 0 2.12-.59.59-1.54.59-2.12 0l-1.06-1.06c-.59-.59-.59-1.54 0-2.12zM1.5 12c0 .83.67 1.5 1.5 1.5h1.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5H3c-.83 0-1.5.67-1.5 1.5zm18 0c0 .83.67 1.5 1.5 1.5h1.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5H19.5c-.83 0-1.5.67-1.5 1.5zM5.33 18.67c-.59-.59-1.54-.59-2.12 0l-1.06-1.06c-.59-.59-.59-1.54 0-2.12.59-.59 1.54-.59 2.12 0l1.06 1.06c.59.59.59 1.54 0 2.12zm11.32-11.32c-.59-.59-1.54-.59-2.12 0L13.47 6.39c-.59.59-.59 1.54 0 2.12.59.59 1.54.59 2.12 0l1.06-1.06c.59-.59.59-1.54 0-2.12z"></path>
+                </svg>
+            </div>
+            <h1>Find The Word</h1>
+            <p class="subtitle">(A fun word hunt game!)</p>
+            <p class="adventure-text">Get ready for a fun word adventure!</p>
+            <button id="start-now-btn" class="btn primary">Start Now</button>
+        </div>
+      </section>
+
+      <!-- HOME SCREEN CONTENT (CATEGORY SELECTION) -->
+      <section id="home" class="page">
           <button id="settings-btn" class="btn" title="Setting">Setting</button>
         <div class="grid" id="grid"></div>
       </section>
@@ -382,7 +566,6 @@
         <div id="game-controls">
             <button id="skip-word-btn" class="btn primary action-btn"><span>Skip</span></button>
             <button id="hint-btn" class="btn action-btn"><span>Show Hint</span></button>
-            <button id="report-bug-game-btn" class="btn action-btn"><span>Report Bug</span></button>
         </div>
       </section>
 
@@ -409,7 +592,7 @@
             <h3>Setting</h3>
             <div class="modal-options">
                 <button id="privacy-policy-btn">Privacy Policy</button>
-                <button id="bug-report-btn">Report Bug</button>
+                <button id="report-bug-btn">Report Bug</button>
             </div>
         </div>
     </div>
@@ -493,51 +676,22 @@
         `,
         bug: `
             <h2>Report a Bug</h2>
-            <p>यदि आपको ऐप में कोई समस्या (बग) दिखाई दे रही है तो कृपया नीचे दिए गए निर्देशों के अनुसार रिपोर्ट भेजें। जितनी ज़्यादा और स्पष्ट जानकारी देंगे, हम उतनी ही तेज़ी से फिक्स कर पाएँगे।</p>
-            <p><strong>सपोर्ट ईमेल:</strong> Maheshgoslya3@gmail.com</p>
-            <h3>क्या भेजें (जरूरी):</h3>
+            <p>We are sorry for the inconvenience. If you've found a bug, please help us by reporting it. Your feedback is crucial for improving the game.</p>
+            <h3>How to Report</h3>
+            <p>Please send an email to our support team with the following details:</p>
             <ul>
-                <li><strong>Page / Screen / Game name:</strong><br>उदाहरण: Word Hunt — COW (या: Home screen, Settings, Level 5)</li>
-                <li><strong>App Version:</strong><br>उदाहरण: 1.0.3 (Settings → About में दिखता है)</li>
-                <li><strong>Device Model:</strong><br>उदाहरण: Xiaomi Redmi Note 12 / Samsung Galaxy M32 / Pixel 6</li>
-                <li><strong>Android Version / OS:</strong><br>उदाहरण: Android 13 / Android 12</li>
-                <li><strong>Steps to Reproduce (कदम-दर-कदम):</strong><br>उदाहरण भरने का तरीका:
-                    <ol>
-                        <li>ऐप खोलें → “Word Hunt” गेम चुनें.</li>
-                        <li>Level 5 शुरू करें.</li>
-                        <li>स्क्रीन पर शब्द COW खोजते समय गेम फ्रीज हुआ और टाइल पर टैप काम नहीं किया.</li>
-                    </ol>
-                </li>
-                 <li><strong>Expected Result (आपको क्या होना चाहिए था):</strong><br>उदाहरण: शब्द चुनने पर शब्द हल होना चाहिए और अगले स्तर पर जाना चाहिए; ऐप फ्रीज या क्रैश नहीं होना चाहिए।</li>
-                <li><strong>Actual Result (वास्तविक व्यवहार):</strong><br>उदाहरण: टैप करने पर कोई रिस्पॉन्स नहीं मिला; ऐप 5–10 सेकेंड बाद फ्रीज हो गया।</li>
-                 <li><strong>Severity (गंभीरता):</strong><br>चुनें: Minor / Moderate / Major / Critical<br>उदाहरण: Major — game not playable on Level 5.</li>
-                <li><strong>Screenshot / Screen recording (यदि संभव हो तो):</strong><br>कृपया जोड़ें — इससे बग समझने में बहुत मदद मिलती है।</li>
+                <li><strong>Device & OS:</strong> (e.g., iPhone 13, Android 12)</li>
+                <li><strong>Category & Word:</strong> The category you were playing and the word you had trouble with, if applicable.</li>
+                <li><strong>Description of the Bug:</strong> A clear description of what happened. What did you expect to happen?</li>
+                <li><strong>Screenshots or Videos:</strong> If possible, please attach a screenshot or screen recording of the bug.</li>
             </ul>
-            <h3>Copy-paste ईमेल टेम्पलेट:</h3>
-            <pre>Subject: [Bug] Word Hunt — Level 5 freezes
-
-Body:
-Page / Screen: Word Hunt — Level 5
-App version: 1.0.3
-Device: Xiaomi Redmi Note 12
-OS: Android 13
-Severity: Major
-
-Steps to reproduce:
-1. Open app → Tap “Play”.
-2. Select “Word Hunt” → Start Level 5.
-3. When I tap the letter W, the game freezes.
-
-Expected result:
-Tapping letters should complete the word.
-
-Actual result:
-App freezes after tapping a tile.</pre>
-            <p><strong>Privacy note:</strong> कृपया किसी भी रिपोर्ट में बच्चों की व्यक्तिगत जानकारी (नाम, उम्र, फोटो, स्कूल, फोन नंबर) न भेजें।</p>
+            <p><strong>Send your report to:</strong> <a href="mailto:Maheshgoslya3@gmail.com">Maheshgoslya3@gmail.com</a></p>
+            <p>Thank you for helping us make Find The Word better!</p>
         `
     };
 
     // DOM Elements
+    const startNowBtn = document.getElementById('start-now-btn');
     const homeSection = document.getElementById('home');
     const gamePage = document.getElementById('game-page');
     const contentPage = document.getElementById('content-page');
@@ -562,8 +716,7 @@ App freezes after tapping a tile.</pre>
     const settingsModal = document.getElementById('settings-modal');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const privacyPolicyBtn = document.getElementById('privacy-policy-btn');
-    const bugReportBtn = document.getElementById('bug-report-btn');
-    const reportBugGameBtn = document.getElementById('report-bug-game-btn');
+    const reportBugBtn = document.getElementById('report-bug-btn');
 
     // Game State
     let currentCategoryKey = null, currentWordIndex = 0, score = 0;
@@ -875,6 +1028,10 @@ App freezes after tapping a tile.</pre>
     }
 
     // Event Listeners
+    startNowBtn.addEventListener('click', () => {
+        showPage('home');
+        playSound('open');
+    });
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('touchend', handleMouseUp);
     skipWordBtn.addEventListener('click', () => { processNextWord(false); playSound('open'); });
@@ -887,8 +1044,7 @@ App freezes after tapping a tile.</pre>
     closeSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('active'));
     settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) { settingsModal.classList.remove('active') }});
     privacyPolicyBtn.addEventListener('click', () => showContentPage('privacy'));
-    bugReportBtn.addEventListener('click', () => showContentPage('bug'));
-    reportBugGameBtn.addEventListener('click', () => showContentPage('bug'));
+    reportBugBtn.addEventListener('click', () => showContentPage('bug'));
 
     // Sound & Effects
     function playSound(type) {
