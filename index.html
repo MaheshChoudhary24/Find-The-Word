@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Find The Word — Word Hunt Game</title>
+
+  <style>
+    :root{
+      --bg: #f0f8ff;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --radius: 18px;
+      --shadow: 0 10px 20px rgba(16,24,40,0.06);
+      --primary-text: #0d2a4c;
+      --accent-orange: #ff9a57;
+      --accent-blue: #4a89dc; /* Softer blue */
+      --accent-green: #34d399;
+      --accent-yellow: #ffdd57;
+      --accent-red: #ef4444;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg,#e6f4ff 0%, var(--bg) 100%);
+      color: var(--primary-text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      display: flex;
+      flex-direction: column;
+    }
+    #app {
+        flex-grow: 1;
+        overflow-x: hidden;
+        padding-bottom: 40px; /* Space for footer */
+    }
+
+    /* Main container */
+    .container{
+      width: 100%;
+      max-width: 900px;
+      margin:0 auto;
+      padding: 1rem;
+      position: relative;
+    }
+
+    /* Buttons */
+     .btn{
+      display:inline-flex; gap:8px; align-items:center; justify-content: center;
+      padding: 0.75rem 1.25rem;
+      border-radius:99px;
+      background: var(--card); border: 2px solid #e5e7eb; cursor:pointer;
+      font-weight: 700;
+      font-size: clamp(0.8rem, 2vw, 1rem);
+      color: var(--primary-text);
+      transition: all .2s ease;
+      box-shadow: 0 4px 10px rgba(16,24,40,0.04);
+    }
+    .btn:hover{ transform: translateY(-2px); box-shadow:0 8px 15px rgba(11,36,71,0.08) }
+    .btn.primary { background: var(--accent-blue); color: white; border-color: var(--accent-blue);}
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Home Page Style */
+    #main-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 0 20px 0;
+        position: relative;
+    }
+    #main-header .logo {
+        width: 72px; height: 72px; border-radius: 20px;
+        background: linear-gradient(135deg,var(--accent-yellow),var(--accent-orange));
+        display: flex; justify-content: center; align-items: center; box-shadow: var(--shadow);
+    }
+    #main-header .logo svg { width: 44px; height: 44px; color: var(--primary-text); }
+    #main-header h1 {
+      font-size: clamp(1.75rem, 5vw, 2.5rem);
+      margin: 12px 0 4px 0;
+      text-align: center;
+    }
+    #main-header p.tag {
+      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+      color: var(--muted);
+    }
+
+    .grid{
+      display:grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
+      gap: clamp(1rem, 2vw, 1.5rem);
+      margin-top:18px;
+    }
+    .tile{
+      background:var(--card); border-radius:var(--radius); padding:18px; cursor:pointer;
+      display:flex; flex-direction:column; align-items:flex-start; gap:8px; box-shadow:var(--shadow);
+      transition: transform .18s ease, box-shadow .18s ease;
+      border: 2px solid rgba(11,36,71,0.04); min-height:140px;
+    }
+    .tile:hover{ transform: translateY(-6px) scale(1.02); box-shadow:0 18px 30px rgba(11,36,71,0.08) }
+    .tile .emoji { font-size: 40px; }
+
+    /* Page Styles */
+    .page{ display:none; }
+    .page.active{ display:block; }
+
+    /* Game Page */
+    #progress-box {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      background: var(--card); border-radius: var(--radius); padding: 15px 20px;
+      margin-top: 15px; box-shadow: var(--shadow);
+    }
+    #progress-box h3 { margin: 0; font-size: clamp(1rem, 3vw, 1.25rem); }
+    #progress-box p { margin: 0; color: var(--muted); font-size: 14px; }
+    #game-stats { text-align: right; color: var(--muted); font-weight: 700; line-height: 1.5; }
+    #game-stats span { color: var(--accent-green); font-weight: 800; }
+
+    #word-display-box {
+      background: #fffbe1; border: 2px solid #fde68a; border-radius: var(--radius);
+      padding: clamp(1rem, 3vw, 1.5rem);
+      margin-top: 20px; text-align: center; box-shadow: var(--shadow);
+    }
+    #word-to-find {
+      display: flex; justify-content: center; flex-wrap: wrap; gap: clamp(0.25rem, 1vw, 0.5rem); margin-bottom: 10px;
+    }
+    .word-letter-box {
+      display: flex; justify-content: center; align-items: center;
+      width: clamp(35px, 8vw, 45px);
+      height: clamp(40px, 9vw, 50px);
+      background-color: var(--accent-blue);
+      color: white;
+      font-size: clamp(1.25rem, 4vw, 1.75rem);
+      font-weight: 800; border-radius: 8px;
+    }
+    #word-display-box p { margin: 0; color: #000000; }
+
+    #word-grid {
+        display: grid; grid-template-columns: repeat(8, 1fr);
+        gap: clamp(0.25rem, 2vw, 0.75rem);
+        user-select: none; padding: 15px;
+        background: #e6f4ff; border-radius: var(--radius);
+        border: 4px solid var(--accent-blue); box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        transition: border-color 0.2s;
+        margin-top: 25px;
+    }
+    @keyframes shakeError {
+      0%, 100% { transform: translateX(0); border-color: var(--accent-blue); }
+      25% { transform: translateX(-6px); } 50% { border-color: var(--accent-red); }
+      75% { transform: translateX(6px); }
+    }
+    .shake-error { animation: shakeError 0.4s ease-in-out; }
+
+    .letter-box {
+        aspect-ratio: 1 / 1; display: flex; justify-content: center; align-items: center;
+        font-size: clamp(1rem, 3.5vw, 1.5rem);
+        font-weight: 800; border-radius: 10px;
+        background-color: var(--card); border: 2px solid transparent;
+        transition: all 0.2s ease; cursor: pointer;
+    }
+    .letter-box.selected { background-color: var(--accent-yellow); transform: scale(1.1); border-color: var(--accent-orange); }
+    .letter-box.correct { background-color: var(--accent-green); color: white; }
+    .letter-box.hint { background-color: var(--accent-blue); color: white; }
+
+    /* Game Controls */
+    #game-controls {
+        margin-top: 25px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.75rem;
+    }
+    .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center; /* Centered text */
+        width: 100%;
+        padding: 0.5rem 1rem; /* Reduced vertical padding */
+    }
+
+    .modal {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.4); display: none; justify-content: center;
+        align-items: center; z-index: 100;
+    }
+    .modal.active { display: flex; }
+    .modal-content {
+        background: white; padding: 30px 40px; border-radius: var(--radius);
+        text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        position: relative;
+    }
+    .modal-content h3 { font-size: 28px; margin: 0 0 10px 0; }
+    .modal-content p { margin-bottom: 25px; }
+    .modal-content .btn { margin: 8px; width: 180px; justify-content: center; }
+
+    #settings-btn {
+        position: absolute;
+        top: 45px;
+        right: 0;
+        width: auto;
+        border-radius: 12px;
+    }
+
+    #settings-modal .modal-options button {
+        display: block; padding: 12px; margin: 8px 0; width: 100%;
+        background: #f3f4f6; border-radius: 12px;
+        text-decoration: none; color: var(--primary-text); font-weight: 700;
+        transition: background .2s; border: none; cursor: pointer; text-align: left;
+    }
+    #settings-modal .modal-options button:hover { background: #e5e7eb; }
+    #close-settings-btn {
+        position: absolute; top: 10px; right: 10px;
+        background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted);
+    }
+
+    #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 101; }
+
+    .page-nav-btn {
+        margin-bottom: 1rem;
+    }
+
+    /* Content Page Styles */
+    #content-page {
+      background: var(--card);
+      padding: 20px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    #content-display h2 {
+        font-size: 1.75rem;
+        margin-top: 1rem; margin-bottom: 1rem;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 0.5rem;
+        color: var(--primary-text);
+    }
+    #content-display h3 {
+        font-size: 1.25rem;
+        margin-top: 1.5rem; margin-bottom: 0.5rem;
+        color: var(--primary-text);
+    }
+    #content-display p, #content-display li {
+        line-height: 1.7;
+        color: var(--muted);
+        margin-bottom: 1rem;
+    }
+    #content-display ul { padding-left: 20px; }
+    #content-display pre {
+        background-color: #f3f4f6;
+        padding: 1rem;
+        border-radius: 8px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-family: monospace;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+    }
+     #content-display strong {
+        color: var(--primary-text);
+        font-weight: 700;
+     }
+
+    /* --- RESPONSIVE STYLES --- */
+
+    /* Extra Small screens */
+    @media (max-width: 380px) {
+        .container {
+            padding: 0.75rem;
+        }
+        .modal-content {
+            padding: 25px;
+        }
+        .word-letter-box {
+          width: clamp(30px, 8vw, 35px);
+          height: clamp(35px, 9vw, 40px);
+        }
+        #settings-btn { top: 15px; right: 15px; }
+    }
+
+    /* Small screens (SM) */
+    @media (min-width: 640px) {
+        .container {
+            padding: 1rem 2rem;
+        }
+        #settings-btn { top: 45px; right: 2rem; }
+    }
+
+    /* Medium screens / Tablets (MD) */
+    @media (min-width: 768px) {
+        :root {
+            --radius: 20px;
+        }
+        .container {
+            max-width: 960px;
+        }
+        .tile {
+            min-height: 150px;
+        }
+        #word-grid {
+            gap: 0.75rem;
+            padding: 20px;
+        }
+        .letter-box {
+            border-radius: 12px;
+        }
+        #main-header h1 {
+            font-size: clamp(2.5rem, 5vw, 3rem);
+        }
+        .word-letter-box {
+            width: 50px;
+            height: 55px;
+            font-size: 1.8rem;
+        }
+        .btn {
+          padding: 0.8rem 1.5rem;
+          font-size: 1rem;
+        }
+    }
+    
+    /* Large screens / Desktops (LG) */
+    @media (min-width: 1024px) {
+        .container {
+            max-width: 1100px;
+        }
+        .grid{
+          grid-template-columns: repeat(auto-fill,minmax(250px,1fr));
+          gap: 1.5rem;
+        }
+        /* Constrain game area on large screens for better playability */
+        #game-page.active {
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <div class="bg-decor" aria-hidden="true"></div>
+  <canvas id="confetti-canvas"></canvas>
+
+  <div id="app">
+    <main class="container">
+      <header id="main-header">
+          <div class="logo">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V18.75a.75.75 0 01.75-.75zM5.106 17.834a.75.75 0 001.06 1.06l1.591-1.59a.75.75 0 00-1.06-1.061l-1.591 1.59zM3 12a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H3.75A.75.75 0 013 12zM6.166 5.106a.75.75 0 00-1.06 1.06l1.59 1.591a.75.75 0 101.061-1.06l-1.59-1.591z"></path></svg>
+          </div>
+          <h1>Find The Word</h1>
+          <p class="tag">A fun word hunt game!</p>
+      </header>
+
+      <!-- HOME SCREEN CONTENT -->
+      <section id="home" class="page active">
+          <button id="settings-btn" class="btn" title="Setting">Setting</button>
+        <div class="grid" id="grid"></div>
+      </section>
+
+      <!-- GAME PAGE CONTENT -->
+      <section id="game-page" class="page">
+        <button id="back-btn-game" class="btn page-nav-btn"> &larr; Back to Home</button>
+
+        <div id="progress-box">
+            <div> <h3 id="category-title-progress">Animals</h3> <p id="words-found-display">Word: 1/10</p> </div>
+            <div id="game-stats"> <div>Round: <span id="round-display">1/10</span></div> <div>Score: <span id="score-display">0</span></div> </div>
+        </div>
+        <div id="word-display-box">
+            <div id="word-to-find"></div>
+            <p>Spell the word shown above. If you can't find it, click Skip or Hint.</p>
+        </div>
+
+        <div id="word-grid"></div>
+
+        <div id="game-controls">
+            <button id="skip-word-btn" class="btn primary action-btn"><span>Skip</span></button>
+            <button id="hint-btn" class="btn action-btn"><span>Show Hint</span></button>
+            <button id="report-bug-game-btn" class="btn action-btn"><span>Report Bug</span></button>
+        </div>
+      </section>
+
+      <!-- CONTENT PAGE -->
+      <section id="content-page" class="page">
+          <button id="back-btn-content" class="btn page-nav-btn">&larr; Back to Home</button>
+          <div id="content-display"></div>
+      </section>
+    </main>
+  </div>
+
+    <!-- MODALS -->
+    <div id="end-of-round-modal" class="modal">
+        <div class="modal-content">
+            <h3>Level Complete!</h3>
+            <p id="final-score">Your score: 100</p>
+            <button id="next-round-btn" class="btn primary">Next Level</button><br>
+            <button id="replay-btn" class="btn">Re-Play</button><br>
+        </div>
+    </div>
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <button id="close-settings-btn" title="Close">&times;</button>
+            <h3>Setting</h3>
+            <div class="modal-options">
+                <button id="privacy-policy-btn">Privacy Policy</button>
+                <button id="bug-report-btn">Report Bug</button>
+            </div>
+        </div>
+    </div>
+
+  <script>
+    const DATA = {
+      animals: { title: 'Animals', icon: '🦁', words: ['ANT', 'APE', 'ASP', 'BAT', 'BEAR', 'BEE', 'BIRD', 'BUG', 'CAT', 'COD', 'COW', 'CUB', 'DEER', 'DOG', 'DOVE', 'DUCK', 'EAGLE', 'EEL', 'ELK', 'EMU', 'FISH', 'FLEA', 'FLY', 'FOX', 'FROG', 'GOAT', 'HAWK', 'HEN', 'HOG', 'HORSE', 'IBIS', 'JAY', 'KID', 'KIT', 'KOALA', 'LAMB', 'LARK', 'LION', 'LYNX', 'MAW', 'MOLE', 'MOUSE', 'MULE', 'NEWT', 'OTTER', 'OWL', 'PANDA', 'PIG', 'PONY', 'PUMA', 'PUP', 'QUAIL', 'RABBIT', 'RAM', 'RAT', 'RAVEN', 'ROBIN', 'SEAL', 'SHARK', 'SHEEP', 'SKUNK', 'SNAIL', 'SNAKE', 'SPIDER', 'SWAN', 'SWINE', 'TIGER', 'TOAD', 'TROUT', 'TURKEY', 'VOLE', 'WASP', 'WHALE', 'WOLF', 'WORM', 'WREN', 'YAK', 'ZEBRA', 'ALPACA', 'CAMEL', 'CHIMP', 'CRAB', 'CRANE', 'CROW', 'DINGO', 'DONKEY', 'FERRET', 'FINCH', 'GECKO', 'GUPPY', 'HERON', 'HYENA', 'IGUANA', 'JACKAL', 'JAGUAR', 'LEMUR', 'LLAMA', 'LOCUST', 'LORIS', 'MAGPIE', 'MONKEY', 'MOOSE', 'NARWAL', 'OKAPI'] },
+      fruits: { title: 'Fruits', icon: '🍎', words: ['APPLE', 'APRICOT', 'AVOCADO', 'BANANA', 'BERRY', 'BLACK', 'BLUE', 'CANTAL', 'CHERRY', 'CITRON', 'CITRUS', 'COCONUT', 'CRAN', 'CURRANT', 'DATE', 'DURIAN', 'ELDER', 'FIG', 'GOJI', 'GOOSE', 'GRAPE', 'GUAVA', 'HUCKLE', 'JACK', 'JICAMA', 'JUJUBE', 'KIWI', 'KUMQUAT', 'LEMON', 'LIME', 'LOGAN', 'LONGAN', 'LOQUAT', 'LYCHEE', 'MANGO', 'MELON', 'MUL', 'NECTAR', 'OLIVE', 'ORANGE', 'PAPAYA', 'PASSION', 'PAWPAW', 'PEACH', 'PEAR', 'PERSIM', 'PINE', 'PLUM', 'POMELO', 'PRUNE', 'QUINCE', 'RAISIN', 'RAMBU', 'RASP', 'RED', 'SALAL', 'SALMON', 'SAPOTA', 'SATSU', 'STRAW', 'SUGAR', 'TANGELO', 'TANGER', 'TOMATO', 'UGLI', 'WHITE', 'ACAI', 'ACKEE', 'BARBER', 'BILBER', 'BREAD', 'CANIS', 'CAROB', 'CEDAR', 'CHOKE', 'CLOUD', 'DAMSON', 'FEIJOA', 'GENIP', 'GRUMIX', 'HORNED', 'ILAMA', 'IMBE', 'JABOT', 'JATOBA', 'KEPPEL', 'KORLAN', 'LANGSAT', 'MAMEY', 'MARANG', 'MONKEY', 'MONSTER', 'MORINDA', 'MYRTLE', 'NANCHE', 'PEANUT', 'PEQUI', 'PHALSA', 'PINYON', 'PISTACH', 'PITANGA', 'PULASAN'] },
+      forts: { title: 'Forts & Castles', icon: '🏰', words: ['ALCAZAR', 'ARMOR', 'ARMORY', 'ARROW', 'BAILEY', 'BANNER', 'BARBIC', 'BASTION', 'BATTLE', 'BRIDGE', 'CASTLE', 'CATAPUL', 'CITADEL', 'COURT', 'CRENEL', 'CROWN', 'CRYPT', 'CURTAIN', 'DONJON', 'DRAW', 'DUNGEON', 'EMPIRE', 'ENCAMP', 'FIEF', 'FORT', 'FORTRES', 'GARRIS', 'GATE', 'GREAT', 'GUARD', 'HALL', 'HELMET', 'HERALD', 'JOUST', 'KEEP', 'KING', 'KINGDOM', 'KNIGHT', 'LORD', 'MACHIC', 'MANOR', 'MERLON', 'MOAT', 'MONARCH', 'MOTTE', 'MURDER', 'OUTER', 'PALACE', 'PALIS', 'PARAPET', 'PEEL', 'PORT', 'POSTERN', 'QUEEN', 'RAMPART', 'REALM', 'REDOUBT', 'REFUGE', 'REIGN', 'ROYALTY', 'RUINS', 'SCEPTER', 'SCONCE', 'SEAT', 'SENTRY', 'SHIELD', 'SIEGE', 'SOLAR', 'SPIRE', 'STABLE', 'STRONG', 'SWORD', 'THRONE', 'TOWER', 'TREBUCH', 'TURRET', 'VASSAL', 'WALL', 'WARD', 'WATCH', 'WEAPON', 'WINDOW', 'YEOMAN', 'ALHAMBR', 'BASTILE', 'BURG', 'CAERNAR', 'CHATEAU', 'CONWY', 'DOVER', 'EDIN', 'EILEAN', 'HARLECH', 'HEIDEL', 'HIMEJI', 'KRAK', 'KRONBOR', 'LOUVRE', 'MALBORK', 'NEUSCH', 'PRAGUE', 'SPANDAU', 'STIRL', 'WINDSOR'] },
+      flags: { title: 'Countries', icon: '🏳️‍🌈', words: ['AFGHAN', 'ALBANIA', 'ALGERIA', 'ANDORRA', 'ANGOLA', 'ARGENT', 'ARMENIA', 'AUSTRIA', 'BAHAMAS', 'BAHRAIN', 'BELARUS', 'BELGIUM', 'BELIZE', 'BENIN', 'BHUTAN', 'BOLIVIA', 'BOSNIA', 'BOTSWAN', 'BRAZIL', 'BRUNEI', 'BULGAR', 'BURUNDI', 'CAMBOD', 'CANADA', 'CHAD', 'CHILE', 'CHINA', 'COLOMB', 'COMOROS', 'CONGO', 'CROATIA', 'CUBA', 'CYPRUS', 'CZECHIA', 'DENMARK', 'DJIBOUT', 'DOMINIC', 'ECUADOR', 'EGYPT', 'ERITREA', 'ESTONIA', 'ETHIOP', 'FIJI', 'FINLAND', 'FRANCE', 'GABON', 'GAMBIA', 'GEORGIA', 'GERMANY', 'GHANA', 'GREECE', 'GRENADA', 'GUATEMA', 'GUINEA', 'GUYANA', 'HAITI', 'HONDURA', 'HUNGARY', 'ICELAND', 'INDIA', 'IRAN', 'IRAQ', 'IRELAND', 'ISRAEL', 'ITALY', 'JAMAICA', 'JAPAN', 'JORDAN', 'KAZAKH', 'KENYA', 'KOSOVO', 'KUWAIT', 'KYRGYZ', 'LAOS', 'LATVIA', 'LEBANON', 'LESOTHO', 'LIBERIA', 'LIBYA', 'LIECHTE', 'LITHUAN', 'LUXEMBO', 'MADAGAS', 'MALAWI', 'MALAYS', 'MALDIV', 'MALI', 'MALTA', 'MAURITI', 'MEXICO', 'MOLDOVA', 'MONACO', 'MONGOL', 'MONTENE', 'MOROCCO', 'MOZAMBI', 'MYANMAR', 'NAMIBIA', 'NAURU', 'NEPAL'] },
+      birds: { title: 'Birds', icon: '🦜', words: ['AVOCET', 'BITTERN', 'BLACK', 'BLUE', 'BLUEJAY', 'BOBOLINK', 'BROLGA', 'BUNTING', 'BUZZARD', 'CANARY', 'CARDIN', 'CATBIRD', 'CHICKAD', 'CONDOR', 'COOT', 'CORVO', 'COWBIRD', 'CRANE', 'CROW', 'CUCKOO', 'CURLEW', 'DOVE', 'DOWITCH', 'DUCK', 'DUNLIN', 'EAGLE', 'EGRET', 'EMU', 'FALCON', 'FINCH', 'FLICKER', 'FOWL', 'FRIGATE', 'GOOSE', 'GOSHAWK', 'GRACKLE', 'GREBE', 'GROSBEA', 'GROUSE', 'GUILLEM', 'GULL', 'HARRIER', 'HAWK', 'HERON', 'HOOPOE', 'HORNBIL', 'HUMMING', 'IBIS', 'JABIRU', 'JACANA', 'JAEGER', 'JAY', 'JUNCO', 'KESTREL', 'KILLDEE', 'KINGLET', 'KITE', 'KIWI', 'LARK', 'LIMPKIN', 'LOON', 'MACAW', 'MALLARD', 'MARTIN', 'MERGAN', 'MERLIN', 'MOCKING', 'MURRE', 'MYNAH', 'ORIOLE', 'OSPREY', 'OVEN', 'OWL', 'PARAKE', 'PARROT', 'PELICAN', 'PENGUIN', 'PETREL', 'PEWEE', 'PHALARO', 'PHEASAN', 'PHOEBE', 'PIGEON', 'PIPIT', 'PLOVER', 'PUFFIN', 'QUAIL', 'RAIL', 'RAVEN', 'RAZOR', 'REDPOLL', 'ROBIN', 'ROOK', 'SANDER', 'SAPSUCK', 'SHRIKE', 'SKIMMER', 'SKUA', 'SNIPE'] },
+      products: { title: 'Products', icon: '🧸', words: ['BALL', 'BALLOON', 'BAT', 'BEADS', 'BIKE', 'BLOCKS', 'BOAT', 'BOOK', 'BOOTS', 'BOTTLE', 'BOX', 'BRUSH', 'BUCKET', 'BUTTON', 'CAMERA', 'CANDLE', 'CANDY', 'CAP', 'CAR', 'CARD', 'CARPET', 'CHAIR', 'CHALK', 'CLOCK', 'CLOTH', 'COAT', 'COMB', 'CRAYON', 'CUP', 'DESK', 'DICE', 'DISH', 'DOLL', 'DOOR', 'DRESS', 'DRUM', 'ERASER', 'FAN', 'FLAG', 'FORK', 'GAME', 'GLASS', 'GLITTER', 'GLOVES', 'GLUE', 'HAMMER', 'HAT', 'HORN', 'HOSE', 'JACKET', 'JAR', 'JEANS', 'JUMP', 'KEY', 'KITE', 'LAMP', 'LEGO', 'LENS', 'LID', 'LIGHT', 'LOCK', 'MAP', 'MARKER', 'MASK', 'MAT', 'MIRROR', 'MITTENS', 'MUG', 'NAIL', 'NEEDLE', 'NET', 'NOTE', 'PAINT', 'PAN', 'PANTS', 'PAPER', 'PEN', 'PENCIL', 'PHONE', 'PIANO', 'PILLOW', 'PIN', 'PLATE', 'POT', 'PUMP', 'PUPPET', 'PUZZLE', 'RADIO', 'RING', 'ROBOT', 'ROCKET', 'ROPE', 'RUG', 'RULER'] },
+      gadgets: { title: 'Gadgets', icon: '📱', words: ['ALARM', 'BATTERY', 'BLENDER', 'CABLE', 'CAMERA', 'CHARGER', 'CLOCK', 'COFFEE', 'COOLER', 'DRONE', 'DRYER', 'EARBUDS', 'FAN', 'GAMEPAD', 'GRILL', 'HEATER', 'IRON', 'KETTLE', 'KEY', 'LAMP', 'LAPTOP', 'LIGHT', 'LOCK', 'MIC', 'MIXER', 'MODEM', 'MONITOR', 'MOUSE', 'OVEN', 'PHONE', 'PLAYER', 'PRINTER', 'PROJECT', 'PUMP', 'RADIO', 'REMOTE', 'ROBOT', 'ROUTER', 'SCALE', 'SCANNER', 'SCREEN', 'SERVER', 'SEWING', 'SHAVER', 'SPEAKER', 'STOVE', 'SWITCH', 'TABLET', 'TIMER', 'TOASTER', 'TORCH', 'TOY', 'TRIMMER', 'VACUUM', 'VIDEO', 'WATCH', 'WEBCAM', 'ADAPTER', 'AERIAL', 'ANTENNA', 'ATOMIZE', 'BEACON', 'BEEPER', 'BINDER', 'BOMB', 'BUZZER', 'CAMCORD', 'CASSETT', 'CELL', 'CHIP', 'CIRCUIT', 'CLICKER', 'CLIPPER', 'COMPASS', 'CONSOLE', 'CONTRA', 'CONTRO', 'COPIER', 'COUNTER', 'CRIMPER', 'CURLER', 'CUTTER', 'DETEC', 'DEVICE', 'DIAL', 'DIGITIZ', 'DONGLE', 'DOORBEL', 'DRILL', 'ECHO', 'EGG', 'ENCODER', 'ENGRAV', 'FAX', 'FINDER', 'FLASHER', 'FLOPPY', 'GADGET', 'GAUGE'] },
+      digitalWords: { title: 'Digital Words', icon: '🧩', words: ['ALARM', 'ART', 'ASSIST', 'AUDIO', 'BANKING', 'BIBLE', 'BOOKS', 'BROWSER', 'BUDGET', 'CAMERA', 'CANVAS', 'CARDS', 'CASH', 'CHAT', 'CLASS', 'CLEANER', 'CLOCK', 'CODE', 'COMICS', 'COMPASS', 'CONTACT', 'COOKING', 'COUPONS', 'CRYPTO', 'DATA', 'DATE', 'DATING', 'DESIGN', 'DIALER', 'DIARY', 'DIET', 'DOCS', 'DRIVE', 'DRUM', 'EDITOR', 'EMAIL', 'EVENTS', 'EXPLORE', 'FAMILY', 'FAX', 'FILES', 'FINANCE', 'FITNESS', 'FLASH', 'FLIGHT', 'FOOD', 'FORMS', 'FORUM', 'FRAME', 'GAME', 'GOLF', 'GPS', 'GUITAR', 'HEALTH', 'HOME', 'HOTEL', 'ICONS', 'IDE', 'IMAGE', 'INVEST', 'JOURNAL', 'KEY', 'KIDS', 'LAUNCH', 'LEARN', 'LENS', 'LIST', 'LOCK', 'MAIL', 'MAPS', 'MEET', 'MEMO', 'MESSAGE', 'MESSEN', 'METER', 'MOBILE', 'MONEY', 'MOVIE', 'MUSIC', 'NAVIGA', 'NEWS', 'NOTE', 'OFFICE', 'PAGES', 'PAINT', 'PAY', 'PDF', 'PERIOD', 'PHONE', 'PHOTO', 'PIANO'] },
+      food: { title: 'Food', icon: '🍕', words: ['ALMOND', 'APPLE', 'BACON', 'BAGEL', 'BASIL', 'BEAN', 'BEEF', 'BERRY', 'BREAD', 'BROTH', 'BUN', 'BURGER', 'BURRITO', 'BUTTER', 'CABBAGE', 'CAKE', 'CANDY', 'CARROT', 'CEREAL', 'CHEESE', 'CHERRY', 'CHICKEN', 'CHILI', 'CHIPS', 'COOKIE', 'CORN', 'CRACKER', 'CREAM', 'CUPCAKE', 'CURRY', 'DATE', 'DILL', 'DIP', 'DOUGH', 'DUMPLIN', 'ECLAIR', 'EGG', 'ENCHILA', 'FIG', 'FISH', 'FLAN', 'FRIES', 'FUDGE', 'GARLIC', 'GELATO', 'GRAHAM', 'GRAIN', 'GRANOLA', 'GRAPE', 'GRAVY', 'HAM', 'HERB', 'HONEY', 'HUMMUS', 'JAM', 'JELLY', 'JERKY', 'JUICE', 'KALE', 'KEBAB', 'KETCHUP', 'KIWI', 'LAMB', 'LASAGNA', 'LEEK', 'LEMON', 'LENTIL', 'LETTUCE', 'LIME', 'MANGO', 'MAPLE', 'MEAT', 'MELON', 'MILK', 'MINT', 'MUFFIN', 'MUSTARD', 'NOODLE', 'NUT', 'OAT', 'OATMEAL', 'OIL', 'OLIVE', 'ONION', 'ORANGE', 'OREGANO', 'PANCAKE', 'PAPAYA', 'PARSLEY', 'PASTA', 'PASTRY', 'PEA', 'PEACH', 'PEANUT', 'PEAR', 'PEPPER', 'PESTO', 'PICKLE'] },
+      vehicles: { title: 'Vehicles', icon: '🚗', words: ['AIRBUS', 'AIRCRAF', 'AIRPLAN', 'BARGE', 'BIKE', 'BIPLANE', 'BOAT', 'BOMBER', 'BUGGY', 'BULLDOZ', 'BUS', 'CAB', 'CAMPER', 'CANOE', 'CAR', 'CARAVAN', 'CARRIER', 'CATAMAR', 'CHARIOT', 'CHOPPER', 'COACH', 'COMBINE', 'COUPE', 'CRANE', 'CRUISER', 'CUTTER', 'CYCLE', 'DUMPER', 'DUNE', 'ENGINE', 'FERRY', 'FIGHTER', 'FIRE', 'FLOAT', 'FORKLIF', 'GLIDER', 'GOCART', 'GONDOLA', 'HARROW', 'HEARSE', 'HOTROD', 'HOVERCR', 'HUMVEE', 'HYDROFO', 'ICEBOAT', 'JEEP', 'JET', 'JETSKI', 'JITNEY', 'JUNK', 'KAYAK', 'KETCH', 'LANDAU', 'LAUNCH', 'LIFEBOA', 'LIMO', 'LINER', 'LORRY', 'MOPED', 'MOTOR', 'MOTORCA', 'PADDLE', 'PICKUP', 'PLANE', 'PLOW', 'PONTOON', 'RAFT', 'RAILCAR', 'ROADSTE', 'ROCKET', 'ROWBOAT', 'RUNABOU', 'SAILBOA', 'SCHOONE', 'SCOOTER', 'SEDAN', 'SHIP', 'SKIBOB', 'SLED', 'SLEEPER', 'SLOOP', 'SPEEDBO', 'STAGECO', 'STEAMBO', 'STREETC', 'SUB', 'SUBWAY', 'TANDEM', 'TANK', 'TANKER', 'TAXI', 'TRACTOR', 'TRAFFIC', 'TRAILER', 'TRAIN'] },
+      flowers: { title: 'Flowers', icon: '🌸', words: ['ROSE', 'LILY', 'TULIP', 'DAISY', 'SUNFLOR', 'ORCHID', 'LOTUS', 'JASMINE', 'MARIGOL', 'PETUNIA', 'PANSY', 'VIOLET', 'IRIS', 'DAFFODL', 'POPPY', 'ASTER', 'AZALEA', 'BEGONIA', 'CARNATI', 'CLOVER', 'CROCUS', 'FERN', 'FUCHSIA', 'GARDENI', 'GERANIU', 'HEATHER', 'HIBISCS', 'HOLLY', 'LAVENDR', 'LILAC', 'MAGNOLI', 'PEONY', 'PHLOX', 'PRIMROS', 'ZINNIA'] },
+      sports: { title: 'Sports', icon: '⚽', words: ['ARCHERY', 'BADMINT', 'BASEBAL', 'BASKETB', 'BOWLING', 'BOXING', 'CRICKET', 'CYCLING', 'FENCING', 'FOOTBAL', 'GOLF', 'HOCKEY', 'JUDO', 'KARATE', 'ROWING', 'RUGBY', 'SKATING', 'SKIING', 'SOCCER', 'SURFING', 'SWIMMIN', 'TENNIS', 'VOLLEYB', 'WRESTLE', 'BIKING', 'CANOEIN', 'CLIMBIN', 'CURLING', 'DIVING', 'HANDBAL', 'KAYAKIN', 'LACROSS', 'POLO', 'SAILING', 'SQUASH'] },
+      trees: { title: 'Trees', icon: '🌳', words: ['ACACIA', 'ALDER', 'APPLE', 'ASH', 'ASPEN', 'BAMBOO', 'BAOBAB', 'BEECH', 'BIRCH', 'CEDAR', 'CHERRY', 'CYPRESS', 'DOGWOOD', 'ELM', 'FIR', 'HEMLOCK', 'HICKORY', 'JUNIPER', 'LARCH', 'LINDEN', 'MAGNOLI', 'MAPLE', 'OAK', 'PALM', 'PINE', 'POPLAR', 'REDWOOD', 'SEQUOIA', 'SPRUCE', 'SYCAMOR', 'TEAK', 'WALNUT', 'WILLOW', 'YEW', 'BANYAN', 'CHESTNU', 'EBONY', 'GINKGO', 'HOLLY', 'MAHOGAN', 'OLIVE', 'PEAR', 'PLUM'] },
+      colors: { title: 'Colors', icon: '🎨', words: ['AMBER', 'AQUA', 'BEIGE', 'BLACK', 'BLUE', 'BRONZE', 'BROWN', 'CORAL', 'CREAM', 'CRIMSON', 'CYAN', 'EMERALD', 'GOLD', 'GRAY', 'GREEN', 'INDIGO', 'IVORY', 'JADE', 'KHAKI', 'LAVENDR', 'LIME', 'MAGENTA', 'MAROON', 'NAVY', 'OLIVE', 'ORANGE', 'PEACH', 'PINK', 'PLUM', 'PURPLE', 'RED', 'ROSE', 'RUBY', 'SALMON', 'SAPPHIR', 'SCARLET', 'SILVER', 'TAN', 'TEAL', 'TURQUOI', 'VIOLET', 'WHITE', 'YELLOW'] },
+      reptiles: { title: 'Reptiles', icon: '🐍', words: ['ADDER', 'ALLIGAT', 'ANACOND', 'ANOLE', 'BASILIS', 'BOA', 'CAIMAN', 'CHAMELE', 'COBRA', 'CROCODI', 'GECKO', 'IGUANA', 'KOMODO', 'LIZARD', 'MAMBA', 'MONITOR', 'PYTHON', 'SKINK', 'SNAKE', 'TAIPAN', 'TORTOIS', 'TUATARA', 'TURTLE', 'VIPER', 'KRAIT', 'TERRAPI'] },
+      oceans: { title: 'Oceans & Seas', icon: '🌊', words: ['ADRIATC', 'AEGEAN', 'ARABIAN', 'ARAL', 'ARCTIC', 'ATLANTC', 'BALTIC', 'BERING', 'BLACK', 'CARIBBE', 'CASPIAN', 'CORAL', 'INDIAN', 'IONIAN', 'IRISH', 'JAPAN', 'JAVA', 'KARA', 'LABRADO', 'MEDITER', 'NORTH', 'PACIFIC', 'PHILIPP', 'RED', 'SARGASS', 'SOUTHER', 'SULU', 'TASMAN', 'TIMOR', 'YELLOW'] },
+      tools: { title: 'Tools', icon: '🔨', words: ['AXE', 'BOLT', 'BRUSH', 'CHISEL', 'CLAMP', 'CROWBAR', 'DRILL', 'FILE', 'HAMMER', 'HATCHET', 'HOE', 'JACK', 'KNIFE', 'LADDER', 'LEVEL', 'MALLET', 'NAIL', 'NUT', 'PICKAXE', 'PLANE', 'PLIERS', 'PLOW', 'PUMP', 'PUNCH', 'RAKE', 'RASP', 'RULER', 'SANDER', 'SAW', 'SCISSOR', 'SCOOP', 'SCREW', 'SHOVEL', 'SPADE', 'WRENCH'] },
+      festivals: { title: 'Festivals', icon: '🎉', words: ['CARNIVA', 'CHRISTM', 'DIWALI', 'EASTER', 'EID', 'HALLOWE', 'HANUKKA', 'HOLI', 'KWANZAA', 'MARDI', 'NEWYEAR', 'PASSOVE', 'RAMADAN', 'THANKS', 'VALENTI', 'YULE', 'LUNAR', 'ONAM', 'PONGAL', 'NAVRATR', 'DUSSEHR', 'OKTOBER'] },
+      mythology: { title: 'Mythology', icon: '🏛️', words: ['ACHILLE', 'APHRODI', 'APOLLO', 'ARES', 'ARTEMIS', 'ATHENA', 'ATLAS', 'CERBERU', 'CYCLOPS', 'DEMETER', 'EROS', 'HADES', 'HECTOR', 'HELEN', 'HERA', 'HERMES', 'HYDRA', 'JASON', 'MEDUSA', 'MINOTAU', 'ODYSSEU', 'OLYMPUS', 'ORPHEUS', 'PAN', 'PEGASUS', 'POSEIDO', 'SIREN', 'SPHINX', 'THESEUS', 'TITAN', 'TROJAN', 'URANUS', 'ZEUS'] },
+      kitchen: { title: 'Kitchen', icon: '🍳', words: ['APRON', 'BOWL', 'BLENDER', 'BOTTLE', 'BURNER', 'CUP', 'DISH', 'FORK', 'FREEZER', 'FRIDGE', 'FUNNEL', 'GRATER', 'GRILL', 'JAR', 'JUG', 'KETTLE', 'KNIFE', 'LADLE', 'LID', 'MICROWA', 'MIXER', 'MUG', 'NAPKIN', 'OVEN', 'PAN', 'PEELER', 'PLATE', 'POT', 'SINK', 'SPATULA', 'SPOON', 'STOVE', 'TIMER', 'TOASTER', 'TRAY', 'WHISK'] }
+    };
+
+    const CONTENT_PAGES = {
+        privacy: `
+            <h2>Privacy Policy – Find the Word Game</h2>
+            <p><strong>Effective Date:</strong> August 15, 2025</p>
+            <h3>1. Introduction</h3>
+            <p>Welcome to Find the Word (“we,” “our,” “us”). We value your privacy and are committed to protecting it. This Privacy Policy explains how we handle your information when you use our mobile application Find the Word. We comply with Google Play Developer Policies, Google Play Families Policy, and applicable privacy laws, including COPPA (Children’s Online Privacy Protection Act), where applicable.</p>
+            <h3>2. Information We Collect</h3>
+            <p>We designed Find the Word to be safe for all ages, including children. The app does not collect personally identifiable information from children without parental consent.</p>
+            <p>We may collect:</p>
+            <ul>
+                <li><strong>Non-Personal Information:</strong> device type, operating system version, app performance data, and gameplay analytics (e.g., levels completed, features used).</li>
+                <li><strong>Crash & Diagnostics Data:</strong> to improve performance and fix bugs.</li>
+                <li><strong>Advertising Data (if applicable):</strong> If the app displays ads, Google AdMob or other ad partners may collect anonymous data in accordance with their privacy policies.</li>
+            </ul>
+            <p>We do not collect sensitive personal information such as names, addresses, phone numbers, or precise location unless explicitly provided by you (e.g., via support email).</p>
+            <h3>3. How We Use Information</h3>
+            <p>We use collected information to:</p>
+            <ul>
+                <li>Improve gameplay experience and app performance.</li>
+                <li>Fix bugs and technical issues.</li>
+                <li>Analyze gameplay trends for better updates.</li>
+                <li>Show age-appropriate ads (if enabled).</li>
+            </ul>
+            <h3>4. Third-Party Services</h3>
+            <p>Our app may use the following third-party services:</p>
+            <ul>
+                <li>Google Play Services – for app updates and authentication.</li>
+                <li>Google AdMob – for showing ads (family-safe, COPPA-compliant ads if the app is for children).</li>
+                <li>Firebase Analytics / Crashlytics – for performance monitoring and crash reports.</li>
+            </ul>
+            <p>These services may collect non-personal identifiers and analytics data as per their own privacy policies: <a href="https://policies.google.com/privacy" target="_blank">Google Privacy Policy</a></p>
+            <h3>5. Children’s Privacy</h3>
+            <p>If the app is directed to children under 13, we comply with COPPA:</p>
+            <ul>
+                <li>No personal data is collected without verifiable parental consent.</li>
+                <li>Ads, if shown, are child-safe and comply with Google Families Policy.</li>
+                <li>Parents can request data deletion at any time by contacting us at Maheshgoslya3@gmail.com.</li>
+            </ul>
+            <h3>6. Data Security</h3>
+            <p>We implement reasonable security measures to protect collected data. However, no online service is 100% secure, and we cannot guarantee absolute protection.</p>
+            <h3>7. Your Rights</h3>
+            <p>You may request:</p>
+            <ul>
+                <li>Access to the information we have about you.</li>
+                <li>Deletion of any personal information (if any).</li>
+            </ul>
+            <p>Contact us at Maheshgoslya3@gmail.com for such requests.</p>
+            <h3>8. Changes to This Privacy Policy</h3>
+            <p>We may update this Privacy Policy from time to time. If we make changes, we will update the Effective Date at the top and post the new version on this page.</p>
+            <h3>9. Contact Us</h3>
+            <p>If you have any questions about this Privacy Policy or our data practices, please contact us:</p>
+            <p>📧 Email: Maheshgoslya3@gmail.com</p>
+        `,
+        bug: `
+            <h2>Report a Bug</h2>
+            <p>यदि आपको ऐप में कोई समस्या (बग) दिखाई दे रही है तो कृपया नीचे दिए गए निर्देशों के अनुसार रिपोर्ट भेजें। जितनी ज़्यादा और स्पष्ट जानकारी देंगे, हम उतनी ही तेज़ी से फिक्स कर पाएँगे।</p>
+            <p><strong>सपोर्ट ईमेल:</strong> Maheshgoslya3@gmail.com</p>
+            <h3>क्या भेजें (जरूरी):</h3>
+            <ul>
+                <li><strong>Page / Screen / Game name:</strong><br>उदाहरण: Word Hunt — COW (या: Home screen, Settings, Level 5)</li>
+                <li><strong>App Version:</strong><br>उदाहरण: 1.0.3 (Settings → About में दिखता है)</li>
+                <li><strong>Device Model:</strong><br>उदाहरण: Xiaomi Redmi Note 12 / Samsung Galaxy M32 / Pixel 6</li>
+                <li><strong>Android Version / OS:</strong><br>उदाहरण: Android 13 / Android 12</li>
+                <li><strong>Steps to Reproduce (कदम-दर-कदम):</strong><br>उदाहरण भरने का तरीका:
+                    <ol>
+                        <li>ऐप खोलें → “Word Hunt” गेम चुनें.</li>
+                        <li>Level 5 शुरू करें.</li>
+                        <li>स्क्रीन पर शब्द COW खोजते समय गेम फ्रीज हुआ और टाइल पर टैप काम नहीं किया.</li>
+                    </ol>
+                </li>
+                 <li><strong>Expected Result (आपको क्या होना चाहिए था):</strong><br>उदाहरण: शब्द चुनने पर शब्द हल होना चाहिए और अगले स्तर पर जाना चाहिए; ऐप फ्रीज या क्रैश नहीं होना चाहिए।</li>
+                <li><strong>Actual Result (वास्तविक व्यवहार):</strong><br>उदाहरण: टैप करने पर कोई रिस्पॉन्स नहीं मिला; ऐप 5–10 सेकेंड बाद फ्रीज हो गया।</li>
+                 <li><strong>Severity (गंभीरता):</strong><br>चुनें: Minor / Moderate / Major / Critical<br>उदाहरण: Major — game not playable on Level 5.</li>
+                <li><strong>Screenshot / Screen recording (यदि संभव हो तो):</strong><br>कृपया जोड़ें — इससे बग समझने में बहुत मदद मिलती है।</li>
+            </ul>
+            <h3>Copy-paste ईमेल टेम्पलेट:</h3>
+            <pre>Subject: [Bug] Word Hunt — Level 5 freezes
+
+Body:
+Page / Screen: Word Hunt — Level 5
+App version: 1.0.3
+Device: Xiaomi Redmi Note 12
+OS: Android 13
+Severity: Major
+
+Steps to reproduce:
+1. Open app → Tap “Play”.
+2. Select “Word Hunt” → Start Level 5.
+3. When I tap the letter W, the game freezes.
+
+Expected result:
+Tapping letters should complete the word.
+
+Actual result:
+App freezes after tapping a tile.</pre>
+            <p><strong>Privacy note:</strong> कृपया किसी भी रिपोर्ट में बच्चों की व्यक्तिगत जानकारी (नाम, उम्र, फोटो, स्कूल, फोन नंबर) न भेजें।</p>
+        `
+    };
+
+    // DOM Elements
+    const homeSection = document.getElementById('home');
+    const gamePage = document.getElementById('game-page');
+    const contentPage = document.getElementById('content-page');
+    const contentDisplay = document.getElementById('content-display');
+    const homeGrid = document.getElementById('grid');
+    const mainHeader = document.getElementById('main-header');
+    const categoryTitleProgress = document.getElementById('category-title-progress');
+    const roundDisplay = document.getElementById('round-display');
+    const scoreDisplay = document.getElementById('score-display');
+    const wordsFoundDisplay = document.getElementById('words-found-display');
+    const wordToFindEl = document.getElementById('word-to-find');
+    const wordGrid = document.getElementById('word-grid');
+    const skipWordBtn = document.getElementById('skip-word-btn');
+    const hintBtn = document.getElementById('hint-btn');
+    const backBtnGame = document.getElementById('back-btn-game');
+    const backBtnContent = document.getElementById('back-btn-content');
+    const endOfRoundModal = document.getElementById('end-of-round-modal');
+    const finalScoreEl = document.getElementById('final-score');
+    const nextRoundBtn = document.getElementById('next-round-btn');
+    const replayBtn = document.getElementById('replay-btn');
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsModal = document.getElementById('settings-modal');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const privacyPolicyBtn = document.getElementById('privacy-policy-btn');
+    const bugReportBtn = document.getElementById('bug-report-btn');
+    const reportBugGameBtn = document.getElementById('report-bug-game-btn');
+
+    // Game State
+    let currentCategoryKey = null, currentWordIndex = 0, score = 0;
+    let wordsToPlay = [], lastPlayedWords = [], playedWordsByCategory = {};
+    let isDragging = false, selectedLetters = [], hintUsed = false, gridData = [];
+    let currentWordStartCoords = { r: 0, c: 0 };
+    let totalWordsInSession = 0;
+    const PROGRESS_KEY = 'wordHuntProgress';
+
+    function createHomeTiles() {
+        homeGrid.innerHTML = '';
+        Object.keys(DATA).forEach(key => {
+            const category = DATA[key];
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.dataset.key = key;
+            tile.innerHTML = `<div class="emoji">${category.icon}</div><h3>${category.title}</h3><p>Find hidden words!</p>`;
+            tile.addEventListener('click', () => {
+                startGame(key, false);
+            });
+            homeGrid.appendChild(tile);
+        });
+    }
+
+    function startGame(categoryKey, isReplay, isNextLevel = false) {
+        currentCategoryKey = categoryKey;
+        const savedProgress = getSavedProgress(categoryKey);
+
+        if (isReplay) {
+            wordsToPlay = [...lastPlayedWords];
+            currentWordIndex = 0;
+            score = 0;
+            totalWordsInSession = 0;
+        } else if (savedProgress && !isNextLevel) {
+            // BUG FIX: Check for inconsistent saved state from older versions
+            if (typeof savedProgress.totalWordsInSession === 'undefined') {
+                // State is from an old version, reset it to avoid bugs.
+                currentWordIndex = 0;
+                score = 0;
+                totalWordsInSession = 0;
+                playedWordsByCategory[categoryKey] = [];
+                wordsToPlay = selectWordsForRound(categoryKey);
+                lastPlayedWords = [...wordsToPlay];
+            } else {
+                // Load the progress normally
+                wordsToPlay = savedProgress.wordsToPlay || [];
+                lastPlayedWords = [...wordsToPlay];
+                currentWordIndex = savedProgress.currentWordIndex || 0;
+                score = savedProgress.score || 0;
+                totalWordsInSession = savedProgress.totalWordsInSession || 0;
+                playedWordsByCategory = savedProgress.playedWordsByCategory || {};
+            }
+        } else {
+            if (!isNextLevel) {
+                playedWordsByCategory[categoryKey] = [];
+                totalWordsInSession = 0;
+                score = 0;
+            }
+            wordsToPlay = selectWordsForRound(categoryKey);
+            lastPlayedWords = [...wordsToPlay];
+            currentWordIndex = 0;
+        }
+        
+        showPage('game-page');
+        loadLevel();
+        playSound('open');
+    }
+
+    function selectWordsForRound(categoryKey) {
+        if (!playedWordsByCategory[categoryKey]) playedWordsByCategory[categoryKey] = [];
+        const allWords = DATA[categoryKey].words;
+        let availableWords = allWords.filter(word => !playedWordsByCategory[categoryKey].includes(word));
+
+        if (availableWords.length < 10) {
+            playedWordsByCategory[categoryKey] = [];
+            availableWords = allWords;
+        }
+
+        const shuffled = availableWords.sort(() => 0.5 - Math.random());
+        const newWords = shuffled.slice(0, 10);
+        playedWordsByCategory[categoryKey].push(...newWords);
+        return newWords;
+    }
+
+    function loadLevel() {
+        if (currentWordIndex >= wordsToPlay.length) {
+            endRound();
+            return;
+        }
+        updateUI();
+        hintUsed = false; hintBtn.disabled = false;
+        const word = wordsToPlay[currentWordIndex];
+
+        wordToFindEl.innerHTML = '';
+        word.split('').forEach(letter => {
+            const letterBox = document.createElement('div');
+            letterBox.className = 'word-letter-box';
+            letterBox.textContent = letter;
+            wordToFindEl.appendChild(letterBox);
+        });
+
+        saveProgress();
+        generateGrid(word);
+    }
+
+    function endRound() {
+        finalScoreEl.textContent = `Your score: ${score}`;
+        endOfRoundModal.classList.add('active');
+    }
+
+    function saveProgress() {
+        try {
+            const progress = JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {};
+            progress[currentCategoryKey] = {
+                wordsToPlay,
+                currentWordIndex,
+                score,
+                playedWordsByCategory,
+                totalWordsInSession
+            };
+            localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+        } catch (e) { console.error("Could not save progress", e); }
+    }
+
+    function getSavedProgress(categoryKey) {
+        try {
+            const progress = JSON.parse(localStorage.getItem(PROGRESS_KEY));
+            if (progress && progress[categoryKey]) {
+                playedWordsByCategory = progress[categoryKey].playedWordsByCategory || {};
+                return progress[categoryKey];
+            }
+            return null;
+        } catch (e) { return null; }
+    }
+
+    function processNextWord(found) {
+        if(found) score += 10;
+        totalWordsInSession++;
+        currentWordIndex++;
+        setTimeout(loadLevel, found ? 1500 : 100);
+    }
+
+    function updateUI() {
+        scoreDisplay.textContent = score;
+        const currentRound = Math.floor(totalWordsInSession / 10) + 1;
+        const wordInRound = (totalWordsInSession % 10) + 1;
+        roundDisplay.textContent = `${currentRound > 10 ? 10 : currentRound}/10`;
+        wordsFoundDisplay.textContent = `Word: ${wordInRound}/10`;
+        categoryTitleProgress.textContent = DATA[currentCategoryKey].title;
+    }
+
+    function generateGrid(word) {
+        const gridSize = { rows: 6, cols: 8 };
+        let grid = Array(gridSize.rows).fill(null).map(() => Array(gridSize.cols).fill(''));
+        placeWord(grid, word, gridSize);
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        for (let r = 0; r < gridSize.rows; r++) {
+            for (let c = 0; c < gridSize.cols; c++) {
+                if (grid[r][c] === '') { grid[r][c] = alphabet[Math.floor(Math.random() * alphabet.length)]; }
+            }
+        }
+        gridData = grid;
+        renderGrid(grid, gridSize);
+    }
+
+    function placeWord(grid, word, gridSize) {
+        const directions = [ { r: 0, c: 1 }, { r: 1, c: 0 }, { r: 1, c: 1 }, { r: 0, c: -1 }, { r: -1, c: 0 }, { r: -1, c: -1 }, { r: 1, c: -1 }, { r: -1, c: 1 } ];
+        const possiblePlacements = [];
+        for (const dir of directions) {
+            for (let r = 0; r < gridSize.rows; r++) {
+                for (let c = 0; c < gridSize.cols; c++) {
+                    const endR = r + (word.length - 1) * dir.r;
+                    const endC = c + (word.length - 1) * dir.c;
+                    if (endR >= 0 && endR < gridSize.rows && endC >= 0 && endC < gridSize.cols) {
+                        possiblePlacements.push({ r, c, dir });
+                    }
+                }
+            }
+        }
+        const shuffledPlacements = possiblePlacements.sort(() => 0.5 - Math.random());
+        for (const placement of shuffledPlacements) {
+            let canPlace = true;
+            for (let i = 0; i < word.length; i++) {
+                if (grid[placement.r + i * placement.dir.r][placement.c + i * placement.dir.c] !== '') {
+                    canPlace = false;
+                    break;
+                }
+            }
+            if (canPlace) {
+                for (let i = 0; i < word.length; i++) {
+                    grid[placement.r + i * placement.dir.r][placement.c + i * placement.dir.c] = word[i];
+                }
+                currentWordStartCoords = { r: placement.r, c: placement.c };
+                return;
+            }
+        }
+    }
+
+    function renderGrid(grid, gridSize) {
+        wordGrid.innerHTML = '';
+        wordGrid.style.gridTemplateColumns = `repeat(${gridSize.cols}, 1fr)`;
+        grid.forEach((row, r) => row.forEach((letter, c) => {
+            const letterBox = document.createElement('div');
+            letterBox.className = 'letter-box';
+            letterBox.textContent = letter;
+            letterBox.dataset.row = r; letterBox.dataset.col = c;
+            letterBox.addEventListener('mousedown', handleMouseDown);
+            letterBox.addEventListener('mouseover', handleMouseOver);
+            letterBox.addEventListener('touchstart', (e) => { e.preventDefault(); handleMouseDown(e); });
+            letterBox.addEventListener('touchmove', (e) => { e.preventDefault(); handleMouseOver(e); });
+            wordGrid.appendChild(letterBox);
+        }));
+    }
+
+    function handleMouseDown(e) {
+        isDragging = true;
+        const target = e.type === 'touchstart' ? document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY) : e.target;
+        if(target && target.classList.contains('letter-box')) { selectedLetters = [target]; target.classList.add('selected'); }
+    }
+
+    function handleMouseOver(e) {
+        if (!isDragging) return;
+        const target = e.type === 'touchmove' ? document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY) : e.target;
+        if (!target || !target.classList.contains('letter-box')) return;
+
+        wordGrid.querySelectorAll('.letter-box.selected').forEach(box => box.classList.remove('selected'));
+
+        const startBox = selectedLetters[0];
+        const startRow = parseInt(startBox.dataset.row);
+        const startCol = parseInt(startBox.dataset.col);
+        const endRow = parseInt(target.dataset.row);
+        const endCol = parseInt(target.dataset.col);
+
+        const newPath = [];
+        const deltaRow = endRow - startRow;
+        const deltaCol = endCol - startCol;
+        const absDeltaRow = Math.abs(deltaRow);
+        const absDeltaCol = Math.abs(deltaCol);
+
+        if (absDeltaRow === 0 || absDeltaCol === 0 || absDeltaRow === absDeltaCol) {
+            const stepRow = Math.sign(deltaRow);
+            const stepCol = Math.sign(deltaCol);
+            const steps = Math.max(absDeltaRow, absDeltaCol);
+
+            for (let i = 0; i <= steps; i++) {
+                const r = startRow + i * stepRow;
+                const c = startCol + i * stepCol;
+                const box = document.querySelector(`.letter-box[data-row='${r}'][data-col='${c}']`);
+                if (box) {
+                    newPath.push(box);
+                }
+            }
+        } else {
+            newPath.push(startBox);
+        }
+
+        selectedLetters = newPath;
+        selectedLetters.forEach(box => box.classList.add('selected'));
+    }
+
+    function handleMouseUp() { if (!isDragging) return; isDragging = false; checkSelection(); }
+
+    function checkSelection() {
+        if (selectedLetters.length === 0) return;
+        const selectedWord = selectedLetters.map(el => el.textContent).join('');
+        const correctWord = wordsToPlay[currentWordIndex];
+        if (selectedWord === correctWord || selectedWord === correctWord.split('').reverse().join('')) {
+            playSound('correct'); launchConfetti();
+            selectedLetters.forEach(el => { el.classList.remove('selected'); el.classList.add('correct'); });
+            processNextWord(true);
+        } else {
+            selectedLetters.forEach(el => el.classList.remove('selected'));
+            playSound('wrong'); wordGrid.classList.add('shake-error');
+            setTimeout(() => wordGrid.classList.remove('shake-error'), 400);
+        }
+        selectedLetters = [];
+    }
+
+    function handleHint() {
+        if(hintUsed) return; hintUsed = true; hintBtn.disabled = true;
+        const { r, c } = currentWordStartCoords;
+        const hintBox = document.querySelector(`.letter-box[data-row='${r}'][data-col='${c}']`);
+        if (hintBox) {
+            hintBox.classList.add('hint');
+            setTimeout(() => { hintBox.classList.remove('hint'); }, 1000);
+        }
+    }
+
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        if (pageId === 'home') {
+            mainHeader.style.display = 'flex';
+        } else {
+            mainHeader.style.display = 'none';
+        }
+    }
+
+    function goHome() {
+        saveProgress();
+        showPage('home');
+        playSound('back');
+    }
+    
+    function showContentPage(contentKey) {
+        contentDisplay.innerHTML = CONTENT_PAGES[contentKey];
+        showPage('content-page');
+        settingsModal.classList.remove('active');
+    }
+
+    // Event Listeners
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchend', handleMouseUp);
+    skipWordBtn.addEventListener('click', () => { processNextWord(false); playSound('open'); });
+    hintBtn.addEventListener('click', handleHint);
+    backBtnGame.addEventListener('click', goHome);
+    backBtnContent.addEventListener('click', goHome);
+    nextRoundBtn.addEventListener('click', () => { endOfRoundModal.classList.remove('active'); startGame(currentCategoryKey, false, true); });
+    replayBtn.addEventListener('click', () => { endOfRoundModal.classList.remove('active'); startGame(currentCategoryKey, true); });
+    settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
+    closeSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('active'));
+    settingsModal.addEventListener('click', (e) => { if(e.target === settingsModal) { settingsModal.classList.remove('active') }});
+    privacyPolicyBtn.addEventListener('click', () => showContentPage('privacy'));
+    bugReportBtn.addEventListener('click', () => showContentPage('bug'));
+    reportBugGameBtn.addEventListener('click', () => showContentPage('bug'));
+
+    // Sound & Effects
+    function playSound(type) {
+      try{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); g.gain.value = 0.06;
+        if (type === 'correct') { o.type = 'sine'; o.frequency.setValueAtTime(523.25, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5); }
+        else if (type === 'open') { o.type = 'sine'; o.frequency.value = 660; }
+        else if (type === 'back') { o.type = 'sine'; o.frequency.value = 520; }
+        else if (type === 'wrong') { o.type = 'square'; o.frequency.value = 110; g.gain.setValueAtTime(0.1, ctx.currentTime); }
+        o.start(); setTimeout(()=>{ o.stop(); ctx.close(); }, (type === 'correct') ? 500 : 150);
+      } catch(e){}
+    }
+    const confettiCanvas = document.getElementById('confetti-canvas');
+    const confettiCtx = confettiCanvas.getContext('2d');
+    function launchConfetti() {
+        const confettiColors = ['#ffdd57', '#ff9a57', '#34d399', '#3b82f6'];
+        confettiCanvas.width = window.innerWidth; confettiCanvas.height = window.innerHeight; let confettiParticles = [];
+        for (let i = 0; i < 100; i++) { confettiParticles.push({ x: confettiCanvas.width / 2, y: confettiCanvas.height / 2, size: Math.random() * 5 + 2, color: confettiColors[Math.floor(Math.random() * confettiColors.length)], vx: (Math.random() - 0.5) * 25, vy: (Math.random() - 0.5) * 25, opacity: 1 }); }
+        function animateConfetti() {
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height); let allFaded = true;
+            confettiParticles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.4; p.opacity -= 0.02;
+                if (p.opacity > 0) { allFaded = false; confettiCtx.globalAlpha = p.opacity; confettiCtx.fillStyle = p.color; confettiCtx.fillRect(p.x, p.y, p.size, p.size * 2); }
+            });
+            if (!allFaded) { requestAnimationFrame(animateConfetti); } else { confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height); }
+        }
+        animateConfetti();
+    }
+
+    document.addEventListener('DOMContentLoaded', createHomeTiles);
+  </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
